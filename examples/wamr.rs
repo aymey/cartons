@@ -1,8 +1,8 @@
 use std::{ffi::c_void, path::Path};
 use wamr_rust_sdk::{function::Function, instance::Instance, module::Module, runtime::Runtime, value::WasmValue, wasi_context::WasiCtxBuilder, RuntimeError};
 
-extern "C" fn log(arg: *const i32) {
-    println!("{arg:?}")
+extern "C" fn log(arg: i32) {
+    println!("{arg}")
 }
 
 fn main() -> Result<(), RuntimeError> {
