@@ -5,7 +5,3 @@ edition = "2021"
 
 [dependencies]
 wamr-rust-sdk = { git = "https://github.com/bytecodealliance/wamr-rust-sdk", tag = "v1.0.0" }
-
-[[example]]
-name = "wamr"
-path = "examples/wamr.rs"
