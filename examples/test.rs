@@ -1,5 +1,5 @@
-use cartons;
+use cartons::prelude::*;
 
 fn main() -> std::io::Result<()> {
-    cartons::spawn_server()
+    server::spawn_server()
 }
