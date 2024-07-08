@@ -1,7 +1,5 @@
 use std::{
-    fs,
-    io::{prelude::*, BufReader},
-    net::{TcpListener, TcpStream}
+    fs, io::{prelude::*, BufReader}, net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread::{self, sleep}, time::{self, Duration}
 };
 
 use crate::prelude::*;
@@ -15,7 +13,25 @@ fn contenttype_from_extension(extension: &str) -> Option<&str> {
     })
 }
 
-fn handle_request(mut stream: TcpStream) -> std::io::Result<()> {
+fn simulate(simulation: Arc<Mutex<simulation::Simulation>>) {
+    let mut last = time::Instant::now();
+    loop {
+        thread::sleep(Duration::from_millis(3));
+        let now = time::Instant::now();
+        let delta = now.duration_since(last);
+        last = now;
+
+        {
+            let mut simulation = simulation.lock().unwrap();
+            simulation.step(delta.as_secs_f32());
+        }
+    }
+}
+
+fn handle_request(
+    mut stream: TcpStream,
+    simulation: Arc<Mutex<simulation::Simulation>>,
+) -> std::io::Result<()> {
     let buf_reader = BufReader::new(&mut stream);
     let request = buf_reader
         .lines()
@@ -32,18 +48,14 @@ fn handle_request(mut stream: TcpStream) -> std::io::Result<()> {
     };
 
     let contents = match endpoint {
-        "entity" => Some(serde_json::to_string(&entity::Entity::new(
-            entity::Pos2::new(0.5, 0.0),
-            entity::Vel2::new(0.0, 0.0),
-            1.0,
-        ))?),
-        target => fs::read_to_string(format!("src/res/{target}")).ok()
+        "entity" => Some(serde_json::to_string(&simulation.entities[0])?),
+        target => fs::read_to_string(format!("src/res/{target}")).ok(),
     };
     let content_type = contenttype_from_extension(extension).unwrap_or("text/plain");
 
     let status_line = match contents {
         Some(_) => "HTTP/1.1 200 OK",
-        None => "HTTP/1.1 404 Not Found"
+        None => "HTTP/1.1 404 Not Found",
     };
     let contents = contents.unwrap_or("404".to_owned());
     let length = contents.len();
@@ -57,9 +69,19 @@ fn handle_request(mut stream: TcpStream) -> std::io::Result<()> {
 pub fn spawn_server() -> std::io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8000")?;
 
-    for stream in listener.incoming() {
-        handle_request(stream?)?;
-    }
+    let mut simulation_ctx = simulation::Simulation::default();
+    let ent = entity::Entity::new(entity::Pos::new(0.5, 0.5), entity::Vel::new(0.0, 0.0), 5.0);
+    simulation_ctx.add(ent);
+    let mutex = Arc::new(Mutex::new(simulation_ctx));
+    let clone = Arc::clone(&mutex);
+
+    std::thread::scope(|s| {
+        s.spawn(move || simulate(mutex));
+
+        for stream in listener.incoming() {
+            handle_request(stream.unwrap(), clone).unwrap();
+        }
+    });
 
     Ok(())
 }
