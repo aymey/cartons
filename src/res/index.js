@@ -1,4 +1,4 @@
-window.onload = async () => {
+window.onload = async function a() {
     /** @type HTMLCanvasElement **/
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -6,10 +6,16 @@ window.onload = async () => {
     let ent = await (await fetch("/entity")).json();
     ent.pos.x *= canvas.width;
     ent.pos.y = canvas.height*(1 - ent.pos.y);
-    ent.rad *= canvas.width/canvas.height;
+    ent.rad *= canvas.width;
 
-    ctx.arc(ent.pos.x, ent.pos.y, ent.rad, 0, 2*Math.PI, true);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.beginPath();
+    ctx.arc(ent.pos.x, ent.pos.y, ent.rad * 10, 0, 2*Math.PI, true);
+    ctx.closePath();
     ctx.fill();
+
+    setTimeout(a, 22);
 }
 
 const memory = new WebAssembly.Memory({initial: 1});

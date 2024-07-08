@@ -1,5 +1,11 @@
 use std::{
-    fs, io::{prelude::*, BufReader}, net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread, time::{self, Duration}
+    fs,
+    io::{prelude::*, BufReader},
+    net::{TcpListener, TcpStream},
+    path::PathBuf,
+    sync::{Arc, Mutex},
+    thread,
+    time::{self, Duration},
 };
 
 use crate::prelude::*;
@@ -16,7 +22,7 @@ fn contenttype_from_extension(extension: &str) -> Option<&str> {
 fn simulate(simulation: Arc<Mutex<simulation::Simulation>>) {
     let mut last = time::Instant::now();
     loop {
-        thread::sleep(Duration::from_millis(5));
+        thread::sleep(Duration::from_millis(4));
         let now = time::Instant::now();
         let delta = now.duration_since(last);
         last = now;
@@ -40,12 +46,12 @@ fn handle_request(
         .collect::<Vec<String>>();
     let endpoint =
         &request[0][request[0].find("/").unwrap() + 1..request[0].find("H").unwrap() - 1];
-    let ext = endpoint.find(".");
-    let extension = if let Some(ext) = ext {
-        &endpoint[ext + 1..]
-    } else {
-        Default::default()
-    };
+    let target = PathBuf::from(endpoint);
+    let extension = target
+        .extension()
+        .unwrap_or_default()
+        .to_str()
+        .unwrap_or_default();
 
     let contents = match endpoint {
         "entity" => Some(serde_json::to_string(&simulation.entities[0])?),
@@ -70,7 +76,11 @@ pub fn spawn_server() -> std::io::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:8000")?;
 
     let mut simulation_ctx = simulation::Simulation::default();
-    let ent = entity::Entity::new(entity::Pos::new(0.5, 0.5), entity::Vel::new(0.0, 0.0), 5.0);
+    let ent = entity::Entity::new(
+        entity::Pos::new(0.5, 0.5),
+        entity::Vel::new(0.0, 0.0),
+        0.0025,
+    );
     simulation_ctx.add(ent);
     let mutex = Arc::new(Mutex::new(simulation_ctx));
     let clone = Arc::clone(&mutex);

@@ -9,7 +9,7 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn step(&mut self, delta: f32) {
-        self.entities.iter_mut().for_each(|ent| ent.step());
+        self.entities.iter_mut().for_each(|ent| ent.step(delta));
     }
 
     pub fn add(&mut self, entity: entity::Entity) {
