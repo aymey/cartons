@@ -1,5 +1,5 @@
 use std::{
-    fs, io::{prelude::*, BufReader}, net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread::{self, sleep}, time::{self, Duration}
+    fs, io::{prelude::*, BufReader}, net::{TcpListener, TcpStream}, sync::{Arc, Mutex}, thread, time::{self, Duration}
 };
 
 use crate::prelude::*;
@@ -16,7 +16,7 @@ fn contenttype_from_extension(extension: &str) -> Option<&str> {
 fn simulate(simulation: Arc<Mutex<simulation::Simulation>>) {
     let mut last = time::Instant::now();
     loop {
-        thread::sleep(Duration::from_millis(3));
+        thread::sleep(Duration::from_millis(5));
         let now = time::Instant::now();
         let delta = now.duration_since(last);
         last = now;
@@ -30,7 +30,7 @@ fn simulate(simulation: Arc<Mutex<simulation::Simulation>>) {
 
 fn handle_request(
     mut stream: TcpStream,
-    simulation: Arc<Mutex<simulation::Simulation>>,
+    simulation: &simulation::Simulation,
 ) -> std::io::Result<()> {
     let buf_reader = BufReader::new(&mut stream);
     let request = buf_reader
@@ -75,11 +75,11 @@ pub fn spawn_server() -> std::io::Result<()> {
     let mutex = Arc::new(Mutex::new(simulation_ctx));
     let clone = Arc::clone(&mutex);
 
-    std::thread::scope(|s| {
+    thread::scope(|s| {
         s.spawn(move || simulate(mutex));
 
         for stream in listener.incoming() {
-            handle_request(stream.unwrap(), clone).unwrap();
+            handle_request(stream.unwrap(), &clone.lock().unwrap()).unwrap();
         }
     });
 

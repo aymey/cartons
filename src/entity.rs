@@ -7,7 +7,7 @@ const GRAVITY: f32 = 9.8 * 1.0 / (10_i32.pow(EXPONENT as u32) as f32);
 const MASS: f32 = 1.0;
 const TERMINAL_VELOCITY: f32 = 5.0;
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Vec2 {
     pub x: f32,
     pub y: f32,
@@ -81,6 +81,10 @@ impl Vec2 {
     fn normalize(&self) -> Self {
         *self / self.magnitude()
     }
+
+    const fn splat(v: f32) -> Self {
+        Self {x: v, y: v}
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -97,7 +101,19 @@ impl Entity {
 
     pub fn step(&mut self) {
         self.gravity();
-        self.pos += self.vel
+        self.pos += self.vel;
+
+        // bounds check
+        if self.pos.y + self.rad < 0.0 {
+            self.pos.y = self.rad
+        }
+
+        if self.vel.x.abs() > TERMINAL_VELOCITY {
+            self.vel.x = TERMINAL_VELOCITY * self.vel.x.signum()
+        }
+        if self.vel.y.abs() > TERMINAL_VELOCITY {
+            self.vel.y = TERMINAL_VELOCITY * self.vel.y.signum()
+        }
     }
 
     fn gravity(&mut self) {
