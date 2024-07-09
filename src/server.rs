@@ -22,14 +22,14 @@ fn contenttype_from_extension(extension: &str) -> Option<&str> {
 fn simulate(simulation: Arc<Mutex<simulation::Simulation>>) {
     let mut last = time::Instant::now();
     loop {
-        thread::sleep(Duration::from_millis(4));
+        thread::sleep(Duration::from_millis(3));
         let now = time::Instant::now();
         let delta = now.duration_since(last);
         last = now;
 
         {
             let mut simulation = simulation.lock().unwrap();
-            simulation.step(delta.as_secs_f32());
+            simulation.step(delta.as_secs_f32() * 5.0);
         }
     }
 }
@@ -81,7 +81,9 @@ pub fn spawn_server() -> std::io::Result<()> {
         entity::Vel::new(0.0, 0.0),
         0.0025,
     );
-    simulation_ctx.add(ent);
+    let floor = simulation::Object::new(entity::Pos::new(0.0, 0.0), entity::Vec2::new(1.0, 1.0));
+    simulation_ctx.add_entity(ent);
+    simulation_ctx.add_object(floor);
     let mutex = Arc::new(Mutex::new(simulation_ctx));
     let clone = Arc::clone(&mutex);
 
